@@ -119,3 +119,13 @@ func RefreshToken(c *gin.Context) {
 	log.Printf("Token renovado para usuário %s", userID)
 	c.JSON(http.StatusOK, gin.H{"token": newToken})
 }
+
+func GenerateTestJWT(userID string) (string, error) {
+	secret := []byte(os.Getenv("JWT_KEY"))
+	claims := jwt.MapClaims{
+		"user_id": userID,
+		"exp":     time.Now().Add(24 * time.Hour).Unix(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(secret)
+}

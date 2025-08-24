@@ -43,6 +43,13 @@ type Habit struct {
 	CreatedAt       time.Time `gorm:"autoCreateTime" json:"created_at"`
 }
 
+type HabitLog struct {
+	ID          string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
+	HabitID     string    `gorm:"not null" json:"habit_id"`
+	UserID      string    `gorm:"not null" json:"user_id"`
+	CompletedAt time.Time `gorm:"not null" json:"completed_at"`
+}
+
 func Migrate() {
 	err := pkg.DB.AutoMigrate(&User{}, &Habit{})
 	if err != nil {

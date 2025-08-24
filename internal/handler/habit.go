@@ -62,7 +62,7 @@ func CreateHabit(c *gin.Context) {
 	}
 
 	log.Printf("Hábito criado: %s (%s) para usuário %s", habit.Nome, habit.HorarioPreferido, userID)
-	c.JSON(http.StatusCreated, gin.H{"message": "Hábito criado com sucesso"})
+	c.JSON(http.StatusCreated, gin.H{"message": "Hábito criado com sucesso", "habit_id": habit.ID})
 }
 
 func GetHabits(c *gin.Context) {
@@ -128,4 +128,75 @@ func DeleteHabit(c *gin.Context) {
 
 	log.Printf("Hábito deletado: %s para usuário %s", habitID, userID)
 	c.JSON(http.StatusOK, gin.H{"message": "Hábito deletado com sucesso"})
+}
+
+func CompleteHabit(c *gin.Context) {
+	userID, ok := getUserIDFromContext(c)
+	if !ok {
+		return
+	}
+
+	habitID := c.Param("id")
+	var habit models.Habit
+	if err := pkg.DB.Where("id = ? AND user_id = ?", habitID, userID).First(&habit).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Hábito não encontrado"})
+		return
+	}
+
+	logEntry := models.HabitLog{
+		HabitID:     habitID,
+		UserID:      userID,
+		CompletedAt: time.Now(),
+	}
+
+	if err := pkg.DB.Create(&logEntry).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Hábito marcado como concluído"})
+}
+
+func GetHabitHistory(c *gin.Context) {
+	userID, ok := getUserIDFromContext(c)
+	if !ok {
+		return
+	}
+
+	habitID := c.Param("id")
+	var history []models.HabitLog
+	if err := pkg.DB.Where("habit_id = ? AND user_id = ?", habitID, userID).
+		Order("completed_at desc").
+		Find(&history).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, history)
+}
+
+func GetFilteredHabits(c *gin.Context) {
+	userID, ok := getUserIDFromContext(c)
+	if !ok {
+		return
+	}
+
+	category := c.Query("category")
+	frequency := c.Query("frequency")
+
+	query := pkg.DB.Where("user_id = ?", userID)
+	if category != "" {
+		query = query.Where("categoria = ?", category)
+	}
+	if frequency != "" {
+		query = query.Where("frequencia = ?", frequency)
+	}
+
+	var habits []models.Habit
+	if err := query.Find(&habits).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, habits)
 }
