@@ -35,6 +35,7 @@ func (u *User) CheckPassword(password string) bool {
 type Habit struct {
 	ID              string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
 	UserID          string    `gorm:"type:uuid;not null" json:"user_id"`
+	User           User      `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
 	Nome            string    `gorm:"not null" json:"name"`
 	Categoria       string    `json:"category"`
 	HorarioPreferido string   `json:"preferred_hour"`

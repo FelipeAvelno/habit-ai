@@ -13,10 +13,10 @@ import (
 )
 
 type HabitInput struct {
-	Name          string `json:"name" binding:"required"`
+	Name          string `json:"name" binding:"required,min=1,max=50"`
 	Category      string `json:"category"`
-	PreferredHour string `json:"preferred_hour"`
-	Frequency     int    `json:"frequency"`
+	PreferredHour string `json:"preferred_hour" binding:"omitempty,datetime=15:04"`
+	Frequency     int    `json:"frequency" binding:"gte=1,lte=7"`
 }
 
 func getUserIDFromContext(c *gin.Context) (string, bool) {
@@ -36,6 +36,7 @@ func CreateHabit(c *gin.Context) {
 	c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
 
 	if err := c.ShouldBindJSON(&input); err != nil {
+		log.Println("Erro de validação:", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -60,6 +61,7 @@ func CreateHabit(c *gin.Context) {
 		return
 	}
 
+	log.Printf("Hábito criado: %s (%s) para usuário %s", habit.Nome, habit.HorarioPreferido, userID)
 	c.JSON(http.StatusCreated, gin.H{"message": "Hábito criado com sucesso"})
 }
 
@@ -81,6 +83,7 @@ func GetHabits(c *gin.Context) {
 func UpdateHabit(c *gin.Context) {
 	var input HabitInput
 	if err := c.ShouldBindJSON(&input); err != nil {
+		log.Println("Erro de validação:", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -107,6 +110,7 @@ func UpdateHabit(c *gin.Context) {
 		return
 	}
 
+	log.Printf("Hábito atualizado: %s (%s) para usuário %s", habit.Nome, habit.HorarioPreferido, userID)
 	c.JSON(http.StatusOK, gin.H{"message": "Hábito atualizado com sucesso"})
 }
 
@@ -122,5 +126,6 @@ func DeleteHabit(c *gin.Context) {
 		return
 	}
 
+	log.Printf("Hábito deletado: %s para usuário %s", habitID, userID)
 	c.JSON(http.StatusOK, gin.H{"message": "Hábito deletado com sucesso"})
 }
