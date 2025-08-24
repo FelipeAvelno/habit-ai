@@ -17,6 +17,7 @@ func main() {
 	// Rotas públicas
 	r.POST("/register", handler.RegisterUser)
 	r.POST("/login", handler.LoginUser)
+	r.POST("/refresh", handler.RefreshToken)
 
 	// Rotas protegidas por middleware JWT
 	protected := r.Group("/")
