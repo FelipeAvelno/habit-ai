@@ -4,7 +4,10 @@ import (
 	"habit-ai/internal/models"
 	"habit-ai/pkg"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
 	"net/http"
+	"os"
+	"time"
 )
 
 func RegisterUser(c *gin.Context) {
@@ -19,26 +22,22 @@ func RegisterUser(c *gin.Context) {
 		return
 	}
 
-	// Verifica se o email já existe
 	var existing models.User
 	if err := pkg.DB.First(&existing, "email = ?", input.Email).Error; err == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email já cadastrado"})
 		return
 	}
 
-	// Cria usuário
 	user := models.User{
 		FullName: input.FullName,
 		Email:    input.Email,
 	}
 
-	// Gera hash da senha
 	if err := user.SetPassword(input.Password); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao criar senha"})
 		return
 	}
 
-	// Salva no banco
 	if err := pkg.DB.Create(&user).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -69,5 +68,16 @@ func LoginUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Login realizado com sucesso"})
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": user.ID,
+		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+	})
+
+	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_KEY")))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao gerar token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"token": tokenString})
 }
